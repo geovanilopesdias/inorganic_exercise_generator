@@ -1,9 +1,9 @@
 # Inorganic Chemistry Exercise Generator
-**Abstract**: given an inputted number n, it generates a file with n randomly exercises with a chosen type of Inorganic Chemistry topic (in Portuguese).
+**Abstract**: builds a file with randomly generated exercises of Inorganic Chemistry (in Portuguese), such as naming acids or stoichiometry.
 
 ## Background
 Originally written as the "original.py" script, I recently refactored it in diferent modules in order to clean it.
-Here, it's possible to have some classes and methods to generate simple stoichiometry exercises (already implemented), but only with neutralization reactions in simple statements for now.
+Now (ions.py, reactions.py, exercises.py), it's possible to see some classes and methods to generate simple stoichiometry exercises (already implemented), but only with neutralization reactions in simple statements for now.
 
 It'll be implemented another reactions (as hydrocarbon combustions and) as there's already in the original script, as well as naming exercises (as inorganic acids).
 
