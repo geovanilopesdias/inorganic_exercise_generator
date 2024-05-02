@@ -3,7 +3,7 @@ from reactions import ChemicalEquation
 
 
 def random_stoic_exerc_variables():
-    equation = ChemicalEquation.random_neutralization()  # Alter to random_reaction() in ChemicalEquation
+    equation = ChemicalEquation.random_reaction()
     substances = [s for s in equation.reactants + equation.products]
     sub1 = choice(substances)
     while True:
@@ -15,7 +15,7 @@ def random_stoic_exerc_variables():
 def stoichiometry_exercise():
     known_variable_value = randint(100, 500)
     data = random_stoic_exerc_variables()
-    statement_elements = [f"Sabendo a reação: \n\t {data['reaction']} \n\tcalcula a massa de {data['unknown_variable'].formula} "]
+    statement_elements = [f"Sabendo a reação: \n\t {data['reaction']} \ncalcula a massa de {data['unknown_variable'].formula} "]
     answer = known_variable_value * data['unknown_variable'].molar_mass * data['unknown_variable'].coefficient
     answer /= (data['known_variable'].molar_mass * data['known_variable'].coefficient)
 
@@ -32,12 +32,3 @@ def stoichiometry_exercise():
     else:
         statement_elements.append("produzida.")
     return {"statement": "".join(statement_elements), "answer": round(answer, 1)}
-
-
-for a in range(0, 30):
-    print(f"Lista {a+1:}")
-    for c in range(0, 5):
-        exercise = stoichiometry_exercise()
-        print(f"\t{c+1}) {exercise['statement']} \n\tResposta: {exercise['answer']} g.\n")
-
-    print("-"*15)
