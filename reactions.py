@@ -1,6 +1,7 @@
 from enum import Enum
-from ions import Ion
-## Ion.random_ion()
+from elements import Element, PeriodicTable
+from inorganics import *
+from fuels import OrganicFuel
 
 
 class ChemicalEquation():
@@ -11,37 +12,41 @@ class ChemicalEquation():
         self.enthalpy = etp
 
 
+    class Reactions(Enum):
+        NEUTRALIZATION = {"method": 'random_neutralization', "name": 'neutralização'}
+        COMBUSTION = {"method": 'random_combustion', "name": 'combustão'}
+    
+    
     @staticmethod
     def random_reaction():
-    # To return a ChemicalEquation instance using others randomizers
-        pass
+        return getattr(__class__, choice(list(__class__.Reactions)).value["method"])()
 
 
     @staticmethod
     def random_neutralization():
-        anion = Ion.random_ion(an_anion=True)
-        cation = Ion.random_ion(an_anion=False)
+        ANION = random_anion_for_acid()
+        CATION = random_cation()
 
         # Coeficientes dos ácidos, base e água:
-        ac = 1 if anion.charge == cation.charge else cation.charge
-        bc = 1 if anion.charge == cation.charge else anion.charge
-        wc = cation.charge * bc
+        ac = 1 if ANION.charge == CATION.charge else CATION.charge
+        bc = 1 if ANION.charge == CATION.charge else ANION.charge
+        wc = CATION.charge * bc
 
         # Instâncias das substâncias da neutralização:
         acid = ChemicalEquationSubstance(
-            Ion.get_acid_formula(anion),
+            get_acid_formula(ANION),
             StatesOfMatter.AQUEOUS.value,
-            m = anion.molar_mass + anion.charge,
+            m = ANION.molar_mass + ANION.charge,
             c = ac)
         base = ChemicalEquationSubstance(
-            Ion.get_base_formula(cation),
+            get_base_formula(CATION),
             StatesOfMatter.SOLID.value,
-            m = cation.molar_mass + cation.charge * 17,  # 17 is the hidroxide molar mass
+            m = CATION.molar_mass + CATION.charge * 17,  # 17 is the hidroxide molar mass
             c = bc)
         salt = ChemicalEquationSubstance(
-            Ion.get_salt_formula(cation, anion),
+            get_salt_formula(CATION, ANION),
             StatesOfMatter.AQUEOUS.value,
-            m = anion.molar_mass * cation.charge + cation.molar_mass * anion.charge)
+            m = ANION.molar_mass * CATION.charge + CATION.molar_mass * ANION.charge)
         water = ChemicalEquationSubstance(
             'H\u2082O',
             StatesOfMatter.LIQUID.value,
@@ -50,20 +55,75 @@ class ChemicalEquation():
         return ChemicalEquation(r = (acid, base), p = (salt, water))
 
 
+    def _set_combustion_coefficients(fuel):
+        c = Element.get_element_index(PeriodicTable.CARBON, fuel.atoms)
+        h = Element.get_element_index(PeriodicTable.HYDROGEN, fuel.atoms)
+        o = Element.get_element_index(PeriodicTable.OXYGEN, fuel.atoms)
+        if o is None:
+            o = 0
+            
+        if (c % 2 == 0 and o == 1):
+            fc = 1
+        elif (c % 2 != 0 and o == 0) or (c % 2 == 0 and o in (0, 2)) or (c % 2 == 0 and o == 1 and h/c == 2):
+            fc = 2
+        else:
+            fc = 4
+        return {"fuel": fc,
+                "carbon dioxide": fc * c,
+                "water": int(.5 * fc * h),
+                "oxygen": int(.5 * ((.5 * fc * h) + (2 * fc * c) - (fc * o)))}
+    
+
+    @staticmethod
+    def random_combustion():
+        CARBON_DIOXIDE_ENTHALPY = 394
+        WATER_ENTHALPY = 286        
+        ORG_FUEL = OrganicFuel.random_fuel()
+        coefficients = __class__._set_combustion_coefficients(ORG_FUEL)
+
+        # Instâhydrogens_in_fuelias das substâncias da combustão:
+        fuel = ChemicalEquationSubstance(
+            ORG_FUEL.formula,
+            '',  # Implementar estados físicos devidamente para diferentes funções orgânicas
+            m = ORG_FUEL.molar_mass,
+            c = coefficients["fuel"])
+        carbon_dioxide = ChemicalEquationSubstance(
+            'CO\u2082',
+            StatesOfMatter.GAS.value,
+            m = 44,
+            c = coefficients["carbon dioxide"])
+        water = ChemicalEquationSubstance(
+            'H\u2082O',
+            StatesOfMatter.LIQUID.value,
+            m = 18,  # Molar mass of water
+            c = coefficients["water"])
+        oxygen = ChemicalEquationSubstance(
+            'O\u2082',
+            StatesOfMatter.GAS.value,
+            m = 32,  # Molar mass of oxygen gas
+            c = coefficients["oxygen"])  # All water and CO2 oxygens come from oxygen gas or the fuel
+
+        enthalpy = ORG_FUEL.enthalpy * coefficients["fuel"] - CARBON_DIOXIDE_ENTHALPY * coefficients["carbon dioxide"] - WATER_ENTHALPY * coefficients["water"]
+        return ChemicalEquation(r = (fuel, oxygen), p = (carbon_dioxide, water), etp = enthalpy)
+
+
     def __str__(self):
         reactants_str = ' + '.join([str(r) for r in self.reactants])
         products_str = ' + '.join([str(p) for p in self.products])
-
         arrow = '\u2192' if not self.is_equilibrium else '\u2194'
-        return f'{reactants_str} {arrow} {products_str}'
+
+        if self.enthalpy is None:
+            return f'{reactants_str} {arrow} {products_str}'
+        else:
+            return f'{reactants_str} {arrow} {products_str} \u0394H\u2080 = -{self.enthalpy} kJ'
 
 
 
 class StatesOfMatter(Enum):
-    SOLID = '(s)'
-    LIQUID = '(l)'
-    GAS = '(g)'
-    AQUEOUS = '(aq)'
+    SOLID = u'\u208D\u209B\u208E'
+    LIQUID = u'\u208D\u2097\u208E'
+    GAS = u'\u208D\u2099\u208E'
+    AQUEOUS = u'\u208D\u2090\u208E'
 
 
 
@@ -77,10 +137,14 @@ class ChemicalEquationSubstance():
 
     def __str__(self):
         if self.coefficient > 1:
-            return str(self.coefficient) + ' ' + self.formula
+            return str(self.coefficient) + ' ' + self.formula + self.state_of_matter
         else:
             return self.formula
         
+
+
+class RedoxSemiReaction():
+    pass  # Implementar módulo ionstable
 
 
 
@@ -145,3 +209,4 @@ cadastro_redox = [[[['F\u2082', 1, 'flúor', 19]], [['F\u207B', 2, 'íon fluoret
                   [[['Ba\u00B2\u207A', 1, 'íon bário', 137.3]], [['Ba', 1, 'bário', 137.3]], -2.90, 2],
                   [[['K\u207A', 1, 'íon potássio', 39.1]], [['K', 1, 'potássio', 39.1]], -2.93, 1],
                   [[['Li\u207A', 1, 'íon lítio', 6.9]], [['Li', 1, 'lítio', 6.9]], -3.05, 1]]
+
